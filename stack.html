@@ -1,0 +1,116 @@
+<!DOCTYPE=html>
+<head>
+    <meta charset='utf-8'>
+    <title>Test</title>
+
+    <script src="//d3js.org/d3.v3.min.js"></script>
+    <script src="js/colorbrewer.js"></script>
+
+    <style>
+        body {
+            font: 10px sans-serif;
+        }
+
+        .axis line,
+        .axis path {
+            fill: none;
+            stroke: #000;
+            shape-rendering: crispEdges;
+        }
+    </style>
+</head>
+
+<body>
+<script>
+var margin = {left:25, top:50, right:25, bottom:25},
+    width = 960 - margin.left - margin.right,
+    height = 500 - margin.top - margin.bottom;
+
+var x = d3.time.scale().range([0, width]),
+	y = d3.scale.linear().range([height, 0]),
+    z = d3.scale.ordinal().range(colorbrewer.BuPu[5]);
+
+var xAxis = d3.svg.axis().orient("bottom").scale(x),
+	yAxis = d3.svg.axis().orient("left").scale(y);
+
+var timeParse = d3.time.format("%m/%e/%Y").parse;
+
+var line = d3.svg.line()
+        .x(function(d) { return x(d.date); })
+        .y(function(d) { return y(+d.employment); })
+        .interpolate("linear"),
+    stack = d3.layout.stack()
+        .offset("zero")
+        .values(function (d) { return d.values; })
+        .x(function (d) { return d.date; })
+        .y(function (d) { return d.employment; }),
+    nest = d3.nest().key(function(d) { return d.supersector; }),
+    area = d3.svg.area()
+        .interpolate("cardinal")
+        .x(function(d) { return x(d.date); })
+        .y0(function(d) { return y(d.y0); })
+        .y1(function(d) { return y(d.y0 + d.y); });
+
+var svg = d3.select("body").append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+      .append("g")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+d3.csv("iowa-jobs.csv", function(data) {
+
+  data.forEach(function(d) {
+    d.date = timeParse(d.date);
+    d.employment = +d.employment;
+  });
+
+  var layers = stack(nest.entries(data));
+
+  x.domain(d3.extent(data, function(d) { return d.date; }));
+  y.domain([0, d3.max(data, function(d) { return d.y0 + d.y; })]);
+  z.domain([0, d3.max(data, function(d) { return d.employment; })]);
+
+  svg.selectAll(".layer")
+        .data(layers)
+        .enter().append("path")
+        .attr("class", "layer")
+        .attr("d", function(d) { return area(d.values); })
+        .style("fill", "#ddd")
+        .style("stroke", "#333")
+        .style("stroke-width", "1px")
+        .on("mouseover", function() {
+            d3.select(this)
+                .transition()
+                .duration(250)
+                .style("fill", function(d) { return z(d.employment); });
+        })
+      .on("mouseout", function() {
+           d3.select(this)
+               .transition()
+               .duration(300)
+               .style("fill", "#ddd");
+        })
+  .append("title")
+      .text(function(d) { return d.key; });
+
+  svg.append("g")
+      .attr("class", "x axis")
+      .attr("transform", "translate(0," + height + ")")
+      .call(xAxis)
+      .append("text")
+          .attr("x", -12)
+          .attr("y", 25)
+          .style("text-anchor", "start")
+          .text("Date");
+  svg.append("g")
+      .attr("class", "y axis")
+      .call(yAxis)
+      .append("text")
+          .attr("y", -12)
+          .attr("dx", -16)
+          .style("text-anchor", "start")
+          .text("Number of People Employed (thousands)");
+
+});
+</script>
+</body>
