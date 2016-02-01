@@ -17,6 +17,11 @@
             stroke: #000;
             shape-rendering: crispEdges;
         }
+
+        .x.axis path {
+  display: none;
+}
+
     </style>
 </head>
 
@@ -82,10 +87,10 @@ d3.csv("data/iowa-jobs.csv", function(data) {
   layer.append("path")
     .attr("class", "area")
     .attr("d", function(d) { return area(d.values); })
-    .style("fill", "#ccc")
+    .style("fill", "#ddd")
     .style("stroke", "#333")
     .on("mouseover", function() { return d3.select(this).transition().duration(100).style("fill", "#feb24c"); })
-    .on("mouseout", function() { return d3.select(this).transition().duration(100).style("fill", "#ccc"); })
+    .on("mouseout", function() { return d3.select(this).transition().duration(100).style("fill", "#ddd"); })
     .append("title")
         .text(function(d) { return d.key; });
   layer.append("text")
@@ -146,7 +151,7 @@ d3.csv("data/iowa-jobs.csv", function(data) {
         });
       svg.selectAll("path.area")
         .on("mouseover", function() { return d3.select(this).transition().duration(100).style("fill", "#feb24c"); })
-        .on("mouseout", function() { return d3.select(this).transition().duration(100).style("fill", "#ccc"); });
+        .on("mouseout", function() { return d3.select(this).transition().duration(100).style("fill", "#ddd"); });
 
       svg.selectAll("text.label")
           .transition().duration(1000)
