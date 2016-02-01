@@ -22,13 +22,13 @@
 
 <body>
 <script>
-var margin = {left:25, top:50, right:75, bottom:25},
+var margin = {left:35, top:25, right:75, bottom:25},
     width = 960 - margin.left - margin.right,
     height = 500 - margin.top - margin.bottom;
 
 var x = d3.time.scale().range([0, width]),
 	y = d3.scale.linear().range([height, 0]),
-    z = d3.scale.ordinal().range(colorbrewer.BuPu[5]);
+    z = d3.scale.quantize().range(colorbrewer.BuPu[5]);
 
 var xAxis = d3.svg.axis().orient("bottom").scale(x),
 	yAxis = d3.svg.axis().orient("left").scale(y);
@@ -65,16 +65,33 @@ d3.csv("data/iowa-jobs.csv", function(data) {
   });
 
   var layers = stack(nest.entries(data));
+  layers.forEach(function(d) {
+    d.maxPrice = d3.max(d.values, function(s) { return s.employment; });
+    d.sumPrice = d3.sum(d.values, function(s) { return s.employment; });
+  });
+  layers.sort(function(a, b) { return b.sumPrice - a.sumPrice; });
 
   x.domain(d3.extent(data, function(d) { return d.date; }));
   y.domain([0, d3.max(data, function(d) { return d.y0 + d.y; })]);
-  z.domain([0, d3.max(data, function(d) { return d.employment; })]);
+  z.domain([0, d3.max(layers, function(d) { return d.sumPrice; })]);
 
   var layer = svg.selectAll(".layer")
     .data(layers)
     .enter()
     .append("g")
     .attr("class", "layer");
+layer.append("path")
+    .attr("class", "area")
+    .attr("d", function(d) { return area(d.values); })
+    .style("fill", "#ccc")
+    .style("stroke", "#333")
+    .append("title")
+        .text(function(d) { return d.key; });
+layer.append("text")
+    .datum(function(d) { return {name: d.key, value: d.values[d.values.length - 1]}; })
+    .attr("class", "label")
+    .attr("transform", function(d) { return "translate(" + x(d.value.date) + "," + y(d.value.y0) +")"; })
+    .text(function(d) { return d.name; });
 
   svg.append("g")
       .attr("class", "x axis")
@@ -95,7 +112,70 @@ d3.csv("data/iowa-jobs.csv", function(data) {
           .text("Number of People Employed (thousands)");
 
 
-  //START THE ANIMATIONS
+  function drawLines() {
+
+      y.domain([0, d3.max(data, function(d) { return d.employment; })]);
+
+    svg.selectAll("path.area")
+      .transition()
+      .duration(1000)
+      .attr("d", function(d) { console.log(d); return line(d.values); })
+      .each(function(d) {
+          return d3.select(this).transition().duration(1000).style("fill-opacity", "0");
+      });
+
+      svg.selectAll("text.label")
+          .transition()
+          .duration(1000)
+          .attr("transform", function(d) { return "translate(" + x(d.value.date) + "," + y(d.value.y) +")"; })
+
+      svg.select(".y.axis")
+          .transition()
+          .duration(1000)
+          .call(yAxis);
+  }
+
+  function drawArea() {
+
+      x.domain(d3.extent(data, function(d) { return d.date; }));
+      y.domain([0, d3.max(data, function(d) { return d.y0 + d.y; })]);
+
+      svg.selectAll("path.area")
+        .transition()
+        .duration(1000)
+        .attr("d", function(d) { return area(d.values); })
+        .each(function(d) {
+            return d3.select(this).transition().duration(1000).style("fill-opacity", "1");
+        });
+
+        svg.selectAll("text.label")
+            .transition()
+            .duration(1000)
+            .attr("transform", function(d) { return "translate(" + x(d.value.date) + "," + y(d.value.y0) +")"; });
+
+        svg.select(".y.axis")
+            .transition()
+            .duration(1000)
+            .call(yAxis);
+  }
+
+
+
+
+  svg.append("text")
+      .attr("x", width - 30)
+      .attr("y", 0)
+      .text("Lines")
+      .on("click", drawLines);
+
+  svg.append("text")
+      .attr("x", width - 60)
+      .attr("y", 0)
+      .text("Area")
+      .on("click", drawArea);
+
 });
+
+
 </script>
 </body>
