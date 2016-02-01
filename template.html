@@ -27,19 +27,14 @@ var margin = {left:35, top:25, right:75, bottom:25},
     height = 500 - margin.top - margin.bottom;
 
 var x = d3.time.scale().range([0, width]),
-	y = d3.scale.linear().range([height, 0]),
-    z = d3.scale.quantize().range(colorbrewer.BuPu[5]);
+	  y = d3.scale.linear().range([height, 0]);
 
 var xAxis = d3.svg.axis().orient("bottom").scale(x),
-	yAxis = d3.svg.axis().orient("left").scale(y);
+	  yAxis = d3.svg.axis().orient("left").scale(y);
 
 var timeParse = d3.time.format("%m/%e/%Y").parse;
 
-var line = d3.svg.line()
-        .x(function(d) { return x(d.date); })
-        .y(function(d) { return y(+d.employment); })
-        .interpolate("linear"),
-    stack = d3.layout.stack()
+var stack = d3.layout.stack()
         .offset("zero")
         .values(function (d) { return d.values; })
         .x(function (d) { return d.date; })
@@ -49,7 +44,12 @@ var line = d3.svg.line()
         .interpolate("cardinal")
         .x(function(d) { return x(d.date); })
         .y0(function(d) { return y(d.y0); })
-        .y1(function(d) { return y(d.y0 + d.y); });
+        .y1(function(d) { return y(d.y0 + d.y); }),
+    line = d3.svg.area()
+            .interpolate("cardinal")
+            .x(function(d) { return x(d.date); })
+            .y0(function(d) { return y(d.y); })
+            .y1(function(d) { return y(d.y); });
 
 var svg = d3.select("body").append("svg")
     .attr("width", width + margin.left + margin.right)
@@ -66,28 +66,29 @@ d3.csv("data/iowa-jobs.csv", function(data) {
 
   var layers = stack(nest.entries(data));
   layers.forEach(function(d) {
-    d.maxPrice = d3.max(d.values, function(s) { return s.employment; });
-    d.sumPrice = d3.sum(d.values, function(s) { return s.employment; });
+    d.maxEmployment = d3.max(d.values, function(s) { return s.employment; });
+    d.sumEmployment = d3.sum(d.values, function(s) { return s.employment; });
   });
-  layers.sort(function(a, b) { return b.sumPrice - a.sumPrice; });
+  layers = layers.sort(function(a, b) { return a.sumEmployment - b.sumEmployment; });
 
   x.domain(d3.extent(data, function(d) { return d.date; }));
   y.domain([0, d3.max(data, function(d) { return d.y0 + d.y; })]);
-  z.domain([0, d3.max(layers, function(d) { return d.sumPrice; })]);
 
   var layer = svg.selectAll(".layer")
     .data(layers)
     .enter()
     .append("g")
     .attr("class", "layer");
-layer.append("path")
+  layer.append("path")
     .attr("class", "area")
     .attr("d", function(d) { return area(d.values); })
     .style("fill", "#ccc")
     .style("stroke", "#333")
+    .on("mouseover", function() { return d3.select(this).transition().duration(100).style("fill", "#feb24c"); })
+    .on("mouseout", function() { return d3.select(this).transition().duration(100).style("fill", "#ccc"); })
     .append("title")
         .text(function(d) { return d.key; });
-layer.append("text")
+  layer.append("text")
     .datum(function(d) { return {name: d.key, value: d.values[d.values.length - 1]}; })
     .attr("class", "label")
     .attr("transform", function(d) { return "translate(" + x(d.value.date) + "," + y(d.value.y0) +")"; })
@@ -111,32 +112,28 @@ layer.append("text")
           .style("text-anchor", "start")
           .text("Number of People Employed (thousands)");
 
-
   function drawLines() {
-
-      y.domain([0, d3.max(data, function(d) { return d.employment; })]);
+    y.domain([0, d3.max(data, function(d) { return d.employment; })]);
 
     svg.selectAll("path.area")
-      .transition()
-      .duration(1000)
-      .attr("d", function(d) { console.log(d); return line(d.values); })
+      .transition().duration(1000)
+      .attr("d", function(d) { return line(d.values); })
       .each(function(d) {
           return d3.select(this).transition().duration(1000).style("fill-opacity", "0");
       });
+    svg.selectAll("path.area")
+        .on("mouseover", function() { return d3.select(this).transition().duration(100).style("stroke", "#feb24c"); })
+        .on("mouseout", function() { return d3.select(this).transition().duration(100).style("stroke", "#333"); });
 
-      svg.selectAll("text.label")
-          .transition()
-          .duration(1000)
-          .attr("transform", function(d) { return "translate(" + x(d.value.date) + "," + y(d.value.y) +")"; })
+    svg.selectAll("text.label")
+        .transition().duration(1000)
+        .attr("transform", function(d) { return "translate(" + x(d.value.date) + "," + y(d.value.y) +")"; })
 
-      svg.select(".y.axis")
-          .transition()
-          .duration(1000)
-          .call(yAxis);
+    svg.select(".y.axis")
+        .transition().duration(1000)
+        .call(yAxis);
   }
-
   function drawArea() {
-
       x.domain(d3.extent(data, function(d) { return d.date; }));
       y.domain([0, d3.max(data, function(d) { return d.y0 + d.y; })]);
 
@@ -147,30 +144,28 @@ layer.append("text")
         .each(function(d) {
             return d3.select(this).transition().duration(1000).style("fill-opacity", "1");
         });
+      svg.selectAll("path.area")
+        .on("mouseover", function() { return d3.select(this).transition().duration(100).style("fill", "#feb24c"); })
+        .on("mouseout", function() { return d3.select(this).transition().duration(100).style("fill", "#ccc"); });
 
-        svg.selectAll("text.label")
-            .transition()
-            .duration(1000)
-            .attr("transform", function(d) { return "translate(" + x(d.value.date) + "," + y(d.value.y0) +")"; });
+      svg.selectAll("text.label")
+          .transition().duration(1000)
+          .attr("transform", function(d) { return "translate(" + x(d.value.date) + "," + y(d.value.y0) +")"; });
 
-        svg.select(".y.axis")
-            .transition()
-            .duration(1000)
-            .call(yAxis);
+      svg.select(".y.axis")
+          .transition().duration(1000)
+          .call(yAxis);
   }
 
-
-
-
+//Transition Buttons
   svg.append("text")
-      .attr("x", width - 30)
-      .attr("y", 0)
+      .attr("x", 20)
+      .attr("y", 15)
       .text("Lines")
       .on("click", drawLines);
-
   svg.append("text")
-      .attr("x", width - 60)
-      .attr("y", 0)
+      .attr("x", 60)
+      .attr("y", 15)
       .text("Area")
       .on("click", drawArea);
 
