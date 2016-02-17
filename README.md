@@ -2,10 +2,6 @@
 
 IA-Jobs is a repo hosting some a la carte data visualization from Iowa's Open Data website.
 
-  - Type some Markdown on the left
-  - See HTML in the right
-  - Magic
-
 Dataset description from the **Iowa Open Data** website [here.](https://data.iowa.gov/Economy/Iowa-Seasonally-Adjusted-Non-Farm-Employment-by-Mo/sxz8-4swt)
 > This dataset provides final seasonally adjusted employment estimates for the State of Iowa. Iowa's estimate contained in this dataset is broken into the following "expanded" supersectors:
  * Goods-Producing: Construction, Manufacturing, and Mining and Logging 
@@ -31,10 +27,4 @@ Dataset description from the **Iowa Open Data** website [here.](https://data.iow
 
 License
 ----
-MIT
-
-**Free Software, Hell Yeah!**
-
-
-
-
+DWTFYW
